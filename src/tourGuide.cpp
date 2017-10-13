@@ -1,4 +1,4 @@
-//Compile with g++ -Wall -o test -lAria -ldl `pkg-config --cflags --libs opencv` -lpthread -L /usr/local/Aria/lib -I/usr/local/Aria/include test.cpp
+//Compile with g++ -Wall -o tourGuide -lAria -ldl `pkg-config --cflags --libs opencv` -lpthread -L /usr/local/Aria/lib -I/usr/local/Aria/include tourGuide.cpp
 
 /* includes */
 #ifndef LIBARIA
