@@ -1,3 +1,5 @@
+-//Compile with g++ -Wall -o tourGuide -lAria -ldl `pkg-config --cflags --libs opencv` -lpthread -L /usr/local/Aria/lib -I/usr/local/Aria/include tourGuide.cpp
+
 #include "Aria.h"
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
