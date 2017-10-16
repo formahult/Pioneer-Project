@@ -4,7 +4,7 @@ project(Robot_Tour)
 set(CMAKE_CXX_STANDARD 11)
 
 find_package(OpenCV REQUIRED)
-set(SOURCE_FILES ../src/tourGuide.cpp )
+set(SOURCE_FILES ../src/tourGuide.cpp include/eyesim.cpp include/eyesim.h)
 LINK_DIRECTORIES(/usr/local/Aria/lib)
 INCLUDE_DIRECTORIES(/usr/local/Aria/include ${OpenCV_INCLUDE_DIRS})
 set(CMAKE_CXX_FLAGS "-Wall")
