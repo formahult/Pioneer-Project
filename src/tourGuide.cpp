@@ -93,6 +93,16 @@ int main(int argc, char *argv[]) {
         cout << " list: " << i << " dist: " << scan[i] << endl;
     }
 
+    int lineSpeed,angSpeed;
+    Pioneer.SetMaxSpeed(500,100);
+    Pioneer.GetMaxSpeed(&lineSpeed,&angSpeed);
+    cout<<" linM: "<< lineSpeed<<" angM: "<<angSpeed<<endl;
+    Pioneer.VWStraight(1000,100);
+    while(!Pioneer.VWDone()){
+        Pioneer.VWGetSpeed(&lineSpeed,&angSpeed);
+        cout<<" linS: "<<lineSpeed<<" angS: "<<angSpeed<<endl;
+    }
+
     if(CAMERA_ON) {
         //  OpenCV
         VideoCapture cap;
