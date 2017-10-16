@@ -22,6 +22,7 @@ private:
 
 public:
     eyesim(int*,char**);
+    int Terminate();
     int SIMLaserScan(int*);
     int VWSetSpeed(int, int);
 

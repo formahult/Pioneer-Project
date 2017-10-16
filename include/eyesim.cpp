@@ -118,5 +118,10 @@ eyesim::eyesim(int *argc, char **argv) {
     this->robot.comInt(ArCommands::ENABLE, 1);
     this->robot.unlock();
 
+
 }
 
+int eyesim::Terminate() {
+    Aria::exit(0);
+    return 0;
+}
