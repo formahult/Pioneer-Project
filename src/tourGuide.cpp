@@ -3,9 +3,11 @@
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/video.hpp>
-#include <iostream>
 
 /* defines */
+
+#define CAMERA_ON 0
+
 #define REQUIRED_ARGUMENTS 1
 #define IMAGE_SCALE_FACTOR 10
 #define WINDOW_SIZE 300 // window size of image display
@@ -18,15 +20,10 @@ using namespace std;
 using namespace cv;
 
 /* Global Variables */
-ArRobot g_robot;
-ArSick g_laser;
-int g_scan[181];    // 0-right; 90-front; 181-left;
 
 /* Declare Function */
 
 void printUsage();
-
-void GetLaser(Ptr<ArSick> laser);
 
 class MotionDetector {
 public:
@@ -89,15 +86,6 @@ int main(int argc, char *argv[]) {
     eyesim Pioneer(&argc, argv);
 
 
-    //  OpenCV
-    VideoCapture cap;
-    if (!cap.open(1)) {
-        cout << "Unable to open webcam\n";
-        exit(EXIT_FAILURE);
-    }
-    /* video thread */
-    Mat frame;
-    MotionDetector motionDetector = MotionDetector(SUBTRACT_HISTORY, SUBTRACT_THRESHOLD);
 
     int scan[181];
     Pioneer.SIMLaserScan(scan);
@@ -105,26 +93,32 @@ int main(int argc, char *argv[]) {
         cout << " list: " << i << " dist: " << scan[i] << endl;
     }
 
-    cap >> frame;
-//    Size frameSize(frame.cols / IMAGE_SCALE_FACTOR, frame.rows / IMAGE_SCALE_FACTOR);
-    Size frameSize(40,30);
-    namedWindow("webcam", WINDOW_NORMAL);
-    resizeWindow("webcam", frame.cols, frame.rows);
-//    Size frameSize(WINDOW_SIZE,WINDOW_SIZE);
+    if(CAMERA_ON) {
+        //  OpenCV
+        VideoCapture cap;
+        if (!cap.open(1)) {
+            cout << "Unable to open webcam\n";
+            exit(EXIT_FAILURE);
+        }
+        /* video thread */
+        Mat frame;
+        MotionDetector motionDetector = MotionDetector(SUBTRACT_HISTORY, SUBTRACT_THRESHOLD);
 
-    while (waitKey(10) != 27) {
-//      system("play -q sound-impressed.wav");
         cap >> frame;
-        if (frame.empty()) break; // end of video stream
-        resize(frame, frame, frameSize);
-//        resize(frame,frame,)
-        frame = motionDetector.Detect(frame);
-        imshow("webcam", frame);
+        Size frameSize(40, 30);
+        namedWindow("webcam", WINDOW_NORMAL);
+        resizeWindow("webcam", frame.cols, frame.rows);
+
+        while (waitKey(10) != 27) {
+            cap >> frame;
+            if (frame.empty()) break; // end of video stream
+            resize(frame, frame, frameSize);
+            frame = motionDetector.Detect(frame);
+            imshow("webcam", frame);
+        }
     }
 
-
-    Aria::exit(0);  //Exit Aria
-
+    Pioneer.Terminate();
     return 0;
 }
 
@@ -137,15 +131,4 @@ void printUsage() {
     // add arguments here for help information
     cout << "";
     cout << endl;
-}
-
-void GetLaser(Ptr<ArSick> laser) {
-    const list<ArSensorReading *> *readingsList;
-    list<ArSensorReading *>::const_iterator it;
-    int i = -1;
-    readingsList = laser->getRawReadings();
-    for (it = readingsList->begin(); it != readingsList->end(); it++) {
-        i++;
-        g_scan[i] = (*it)->getRange();
-    }
 }
