@@ -25,6 +25,8 @@ public:
     int Terminate();
     int SIMLaserScan(int*);
     int VWSetSpeed(int, int);
+    int GetMaxSpeed(int *,int *);
+    int SetMaxSpeed(int,int);
 
     int VWGetSpeed(int *, int *);
 

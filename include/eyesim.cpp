@@ -63,19 +63,21 @@ int eyesim::VWDrive(int dx, int dy, int lin_speed) {
 int eyesim::VWRemain(void) {
     return (0);
 }
-
+//
 int eyesim::VWDone(void) {
-    return (0);
+
+    return this->robot.isMoveDone(0);
 }
 
 int eyesim::VWWait(void) {
+
     return (0);
 }
 
 int eyesim::VWStalled(void) {
     return (0);
 }
-
+//
 int eyesim::SIMLaserScan(int *scan) {
     const list<ArSensorReading *> *readingsList;
     list<ArSensorReading *>::const_iterator it;
@@ -87,7 +89,7 @@ int eyesim::SIMLaserScan(int *scan) {
     }
     return 0;
 }
-
+//
 eyesim::eyesim(int *argc, char **argv) {
     Aria::init();
     this->robot.addRangeDevice(&this->laser);
@@ -120,8 +122,22 @@ eyesim::eyesim(int *argc, char **argv) {
 
 
 }
-
+//
 int eyesim::Terminate() {
     Aria::exit(0);
+    return 0;
+}
+
+int eyesim::GetMaxSpeed(int *linMax, int *angMax) {
+    *linMax = (int) (this->robot.getTransVelMax());
+    *angMax = (int) (this->robot.getRotVelMax());
+    return 0;
+}
+
+int eyesim::SetMaxSpeed(int linMax, int angMax) {
+//    this->robot.lock();
+    this->robot.setTransVelMax(linMax);
+    this->robot.setRotVelMax(angMax);
+//    this->robot.unlock();
     return 0;
 }
