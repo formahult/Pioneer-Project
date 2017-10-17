@@ -83,25 +83,23 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    int scan[181];
+
     eyesim Pioneer(&argc, argv);
 
 
 
-    int scan[181];
     Pioneer.SIMLaserScan(scan);
-    for (int i = 0; i < 181; i++) {
-        cout << " list: " << i << " dist: " << scan[i] << endl;
-    }
 
-    int lineSpeed,angSpeed;
-    Pioneer.SetMaxSpeed(500,100);
-    Pioneer.GetMaxSpeed(&lineSpeed,&angSpeed);
-    cout<<" linM: "<< lineSpeed<<" angM: "<<angSpeed<<endl;
-    Pioneer.VWStraight(1000,100);
-    while(!Pioneer.VWDone()){
-        Pioneer.VWGetSpeed(&lineSpeed,&angSpeed);
-        cout<<" linS: "<<lineSpeed<<" angS: "<<angSpeed<<endl;
-    }
+//    int lineSpeed,angSpeed;
+//    Pioneer.SetMaxSpeed(500,100);
+//    Pioneer.GetMaxSpeed(&lineSpeed,&angSpeed);
+//    cout<<" linM: "<< lineSpeed<<" angM: "<<angSpeed<<endl;
+//    Pioneer.VWStraight(1000,100);
+//    while(!Pioneer.VWDone()){
+//        Pioneer.VWGetSpeed(&lineSpeed,&angSpeed);
+//        cout<<" linS: "<<lineSpeed<<" angS: "<<angSpeed<<endl;
+//    }
 
     if(CAMERA_ON) {
         //  OpenCV
@@ -127,8 +125,8 @@ int main(int argc, char *argv[]) {
             imshow("webcam", frame);
         }
     }
-
-    Pioneer.Terminate();
+    Aria::exit(0);
+//    Pioneer.Terminate();
     return 0;
 }
 
