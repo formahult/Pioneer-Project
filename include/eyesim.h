@@ -18,10 +18,11 @@ private:
     /* data */
 
     ArRobot robot;
-    ArSick laser;
+    ArLaser* laser;
+    ArArgumentParser parser;
 
 public:
-    eyesim(int*,char**);
+    eyesim(ArArgumentParser parser);
     int Terminate();
     int SIMLaserScan(int*);
     int VWSetSpeed(int, int);
