@@ -13,18 +13,12 @@
 
 using namespace std;
 
-class eyesim {
+class eyesim: public ArRobot {
 private:
     /* data */
-
-    ArRobot robot;
-    ArLaser* laser;
-    ArArgumentParser parser;
-
 public:
-    eyesim(ArArgumentParser parser);
     int Terminate();
-    int SIMLaserScan(int*);
+//    int SIMLaserScan(int*);
     int VWSetSpeed(int, int);
     int GetMaxSpeed(int *,int *);
     int SetMaxSpeed(int,int);
