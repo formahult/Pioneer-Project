@@ -73,8 +73,6 @@ int eyesim::VWWait(void) {
 int eyesim::VWStalled(void) {
     return (0);
 }
-//
-
 
 int eyesim::Terminate() {
     Aria::exit(0);

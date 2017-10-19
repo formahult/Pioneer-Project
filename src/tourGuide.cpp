@@ -20,6 +20,7 @@
 #define COS_60 0.5
 #define COS_75 0.2588190451
 
+
 /* Namespace */
 using namespace std;
 using namespace cv;
@@ -85,9 +86,9 @@ private:
 void LeftFollow(double dist, double speed){
     int i;
     double scan[181];
-    double frontDist = dist/COS_30;
+    double frontDist = dist/COS_45;
     SIMLaserScan(scan);
-    for(i=45;i<=135;i++){
+    for(i=90;i<=135;i++){
         if(scan[i]<frontDist){
             robot.comInt(ArCommands::VEL, 0);
             cout<<"avoid front obstacle"<<endl;
@@ -98,25 +99,41 @@ void LeftFollow(double dist, double speed){
     cout<<"front clear"<<endl;
     robot.comInt(ArCommands::VEL, (short)speed);
     double err_45 = (scan[135]*COS_45 - dist)/10;
-    if(err_45 < speed/5) {
-        robot.comInt(ArCommands::RVEL, (short)err_45);
+    if(abs(err_45)<10){
+        robot.comInt(ArCommands::RVEL, 0);
+        return;
+    }
+    if(err_45 < speed/5/6) {
+        robot.comInt(ArCommands::RVEL, -(short)err_45);
         return;
     }
     double err_60 = (scan[150]*COS_60 - dist)/10;
-    if(err_60<speed/5) {
-        robot.comInt(ArCommands::RVEL, (short)err_60);
+    if(abs(err_60)<10){
+        robot.comInt(ArCommands::RVEL, 0);
         return;
     }
-    double err_75 = scan[165]*COS_75 - dist;
-    if(err_75<speed/5/10) {
-        robot.comInt(ArCommands::RVEL, (short)err_75);
+    if(err_60<speed/5/6) {
+        robot.comInt(ArCommands::RVEL, -(short)err_60);
         return;
     }
-    double err_90 = scan[180] - dist;
-    if(err_90>speed/5/10){
-        err_90 = speed/5/10;
+    double err_75 = (scan[165]*COS_75 - dist)/10;
+    if(abs(err_75)<10){
+        robot.comInt(ArCommands::RVEL, 0);
+        return;
     }
-    robot.comInt(ArCommands::RVEL, (short)err_90);
+    if(err_75<speed/5/5) {
+        robot.comInt(ArCommands::RVEL, -(short)err_75);
+        return;
+    }
+    double err_90 = (scan[180] - dist)/10;
+    if(abs(err_90)<10){
+        robot.comInt(ArCommands::RVEL, 0);
+        return;
+    }
+    if(err_90>speed/5/6){
+        err_90 = speed/5/6;
+    }
+    robot.comInt(ArCommands::RVEL, -(short)err_90);
 
 }
 
@@ -158,7 +175,7 @@ int main(int argc, char *argv[]) {
     // Connect to laser(s) as defined in parameter files.
     // (Some flags are available as arguments to connectLasers() to control error behavior and to control which lasers are put in the list of lasers stored by ArRobot. See docs for details.)
     if (!laserConnector.connectLasers()) {
-//        ArLog::log(ArLog::Terse, "Could not connect to configured lasers. Exiting.");
+        ArLog::log(ArLog::Terse, "Could not connect to configured lasers. Exiting.");
         Aria::exit(3);
         return 3;
     }
@@ -183,40 +200,10 @@ int main(int argc, char *argv[]) {
                currentReadings->size(), angle, dist / 1000.0);
     g_laser->unlockDevice();
     robot.enableMotors();
+
     while(1){
-        LeftFollow(750,DRIVE_SPEED);
+        LeftFollow(650,DRIVE_SPEED);
     }
-
-//    int scan[181];
-
-//    sleep(2);
-//    SIMLaserScan(scan);
-
-//    int lineSpeed,angSpeed;
-//    int x,y,phi;
-//    int i=0;
-//    robot.VWSetPosition(0,0,0);
-//    robot.SetMaxSpeed(5000,1000);
-//    robot.GetMaxSpeed(&lineSpeed,&angSpeed);
-//    robot.VWStraight(1000,100);
-
-//    robot.lock();
-//    robot.enableMotors();
-//    ArUtil::sleep(10);
-//    cout<<2<<endl;
-//    robot.setVel(250);
-//    robot.setRotVel(45);
-//    robot.unlock();
-//    robot.VWGetSpeed(&lineSpeed,&angSpeed);
-//    cout<<" linS: "<<lineSpeed<<" angS: "<<angSpeed<<endl;
-//    while(scan[90]>1000){
-//        SIMLaserScan(scan);
-//    }
-//    robot.lock();
-//    robot.stop();
-//    robot.unlock();
-//    robot.VWGetPosition(&x,&y,&phi);
-//    cout<<" x:"<<x<<" y:"<<y<<" phi:"<< phi<<endl;
 
     if(CAMERA_ON) {
         //  OpenCV
@@ -260,7 +247,7 @@ void printUsage() {
 
 int SIMLaserScan(double* scan) {
     int i;
-    int laserIndex;
+//    int laserIndex;
     int index = 0;
     double dist = 0;
     double angle = 0;
@@ -269,7 +256,7 @@ int SIMLaserScan(double* scan) {
         map<int, ArLaser *>::const_iterator it = lasers->begin();
         g_laser = (*it).second;
         g_laser->lockDevice();
-        list<ArPoseWithTime *> *currentReadings = g_laser->getCurrentBuffer(); // see ArRangeDevice interface doc
+//        list<ArPoseWithTime *> *currentReadings = g_laser->getCurrentBuffer(); // see ArRangeDevice interface doc
         // There is a utility to find the closest reading wthin a range of degrees around the laser, here we use this laser's full field of view (start to end)
         // If there are no valid closest readings within the given range, dist will be greater than laser->getMaxRange().
         for (i = -90; i <= 90; i++) {
