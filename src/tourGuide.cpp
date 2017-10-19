@@ -78,14 +78,14 @@ private:
 
 int main(int argc, char *argv[]) {
     //Usage
-    if (argc != REQUIRED_ARGUMENTS) {
-        printUsage();
-        exit(EXIT_FAILURE);
-    }
+//    if (argc != REQUIRED_ARGUMENTS) {
+//        printUsage();
+//        exit(EXIT_FAILURE);
+//    }
 
     int scan[181];
-
-    eyesim Pioneer(&argc, argv);
+    ArArgumentParser parser(&argc,argv);
+    eyesim Pioneer(parser);
 
 
 
