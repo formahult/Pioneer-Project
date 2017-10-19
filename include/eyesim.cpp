@@ -82,8 +82,7 @@ int eyesim::SIMLaserScan(int *scan) {
     const list<ArSensorReading *> *readingsList;
     list<ArSensorReading *>::const_iterator itera;
     int i = -1;
-
-    readingsList = laser.getRawReadings();
+    readingsList = laser->getRawReadings();
     cout<<"1"<<endl;
     for (itera = readingsList->begin(); itera != readingsList->end(); itera++) {
         i++;
@@ -94,37 +93,67 @@ int eyesim::SIMLaserScan(int *scan) {
     return 0;
 }
 
-eyesim::eyesim(int *argc, char **argv) {
+eyesim::eyesim(ArArgumentParser aparser) : parser(aparser) {
     Aria::init();
-    robot.addRangeDevice(&laser);
-    ArArgumentParser parser(argc, argv); //inst argument parser
     ArSimpleConnector connector(&parser);           //inst connector
     parser.loadDefaultArguments();
 
-    if (!connector.parseArgs()) {
-        cout << "Unknown settings\n";
-        Aria::exit(0);
-        exit(EXIT_FAILURE);
+    ArRobotConnector robotConnector(&parser, &robot);
+    ArLaserConnector laserConnector(&parser, &robot, &robotConnector);
+
+    if (!robotConnector.connectRobot()) {
+        ArLog::log(ArLog::Terse, "lasersExample: Could not connect to the robot.");
+        if (parser.checkHelpAndWarnUnparsed()) {
+            // -help not given
+            Aria::logOptions();
+            Aria::exit(1);
+        }
     }
-    if (!connector.connectRobot(&robot)) {
-        cout << "Unable to connect\n";
-        Aria::exit(0);
-        exit(EXIT_FAILURE);
+    if (!Aria::parseArgs()) {
+        Aria::logOptions();
+        Aria::exit(2);
+        return;
     }
+
+    ArLog::log(ArLog::Normal, "lasersExample: Connected to robot.");
+    // Start the robot processing cycle running in the background.
+    // True parameter means that if the connection is lost, then the
+    // run loop ends.
     robot.runAsync(true);
-    laser.runAsync();
-    if (!connector.connectLaser(&laser)) {
-        cout << "Can't connect to laser\n";
-        Aria::exit(0);
-        exit(EXIT_FAILURE);
+    // Connect to laser(s) as defined in parameter files.
+    // (Some flags are available as arguments to connectLasers() to control error behavior and to control which lasers are put in the list of lasers stored by ArRobot. See docs for details.)
+    if (!laserConnector.connectLasers()) {
+        ArLog::log(ArLog::Terse, "Could not connect to configured lasers. Exiting.");
+        Aria::exit(3);
+        return;
     }
-    laser.asyncConnect();
-    while(!laser.isConnected());
+    // Allow some time to read laser data
+    ArUtil::sleep(500);
+    ArLog::log(ArLog::Normal, "Connected to all lasers.");
+
+    int numLasers = 0;
+    // Get a pointer to ArRobot's list of connected lasers. We will lock the robot while using it to prevent changes by tasks in the robot's background task thread or any other threads. Each laser has an index. You can also store the laser's index or name (laser->getName()) and use that to get a reference (pointer) to the laser object using ArRobot::findLaser().
     robot.lock();
-    robot.comInt(ArCommands::ENABLE, 1);
+    map<int, ArLaser *> *lasers = robot.getLaserMap();
+    map<int, ArLaser *>::const_iterator i = lasers->begin();
+    int laserIndex = (*i).first;
+    laser = (*i).second;
+    laser->lockDevice();
+    // The current readings are a set of obstacle readings (with X,Y positions as well as other attributes) that are the most recent set from teh laser.
+    list<ArPoseWithTime *> *currentReadings = laser->getCurrentBuffer(); // see ArRangeDevice interface doc
+    // There is a utility to find the closest reading wthin a range of degrees around the laser, here we use this laser's full field of view (start to end)
+    // If there are no valid closest readings within the given range, dist will be greater than laser->getMaxRange().
+    double angle = 0;
+    double dist = laser->currentReadingPolar(laser->getStartDegrees(), laser->getEndDegrees(), &angle);
+    ArLog::log(ArLog::Normal,
+               "Laser #%d (%s): %s. Have %d 'current' readings. Closest reading is at %3.0f degrees and is %2.4f meters away.",
+               laserIndex, laser->getName(), (laser->isConnected() ? "connected" : "NOT CONNECTED"),
+               currentReadings->size(), angle, dist / 1000.0);
+    laser->unlockDevice();
+    // Unlock robot and sleep for 5 seconds before next loop.
     robot.unlock();
-    cout<<"Wait 5s to let the laser connection be establised."<<endl;
-    sleep(5);
+    ArUtil::sleep(5000);
+
 }
 
 int eyesim::Terminate() {
