@@ -8,15 +8,20 @@
 
 #include <iostream>
 #include <string>
+#include "eyesim.h"
 
 using namespace cv;
 using namespace std;
 
-class screen{
+class Screen{
   private:
     Mat image;
+    string window = "Map Window";
+    double xscale;
+    double yscale;
   public:
-    int displayImage(string);
+    int displayImage(string, bool fullscreen=false);
     int displayCoordinate(int x, int y);
-    screen();
+    int displayRobotLocation(eyesim* robot);
+    Screen();
 };

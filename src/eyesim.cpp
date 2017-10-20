@@ -236,8 +236,6 @@ void eyesim::SIMLaserScan(double *scan) {
     int index = 0;
     double dist = 0;
     double angle = 0;
-    const std::list<ArPoseWithTime *> *readingsList;
-    std::list<ArPoseWithTime *>::const_iterator RLit;
     this->lock();
     map<int, ArLaser *> *lasers = this->getLaserMap();
     this->unlock();

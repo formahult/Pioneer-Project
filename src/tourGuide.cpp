@@ -1,12 +1,13 @@
 //Compile with g++ -Wall -o tourGuide -lAria -ldl `pkg-config --cflags --libs opencv` -lpthread -L /usr/local/Aria/lib -I/usr/local/Aria/include tourGuide.cpp
-#include "../include/eyesim.h"
+#include "eyesim.h"
+#include "screen.h"
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/video.hpp>
 
 /* defines */
 
-#define CAMERA_ON 1
+#define CAMERA_ON 0
 
 #define DRIVE_SPEED 500
 
@@ -165,11 +166,25 @@ int main(int argc, char *argv[]) {
     cout << "All connections are done." << endl;
     cout << "Motors are enable." << endl;
 
+        Screen screen;
+        screen.displayImage("img/map.png", true);
+  //  while(1){
+  //               screen.displayRobotLocation(&robot);
+  //      robot.LeftFollow(100,DRIVE_SPEED);
+  //  }
 
-
-//    while(1){
-//        robot.LeftFollow(100,DRIVE_SPEED);
-//    }
+    // screen.displayImage("img/map.png", true);
+    screen.displayCoordinate(0,0);
+    screen.displayCoordinate(1059,-5321);
+    screen.displayCoordinate(6152,-5574);
+    screen.displayCoordinate(11016,-6102);
+    screen.displayCoordinate(17013,-7130);
+    screen.displayCoordinate(19344,-7729);
+    screen.displayCoordinate(22481,-8701);
+    screen.displayCoordinate(25960,-9890);
+    screen.displayCoordinate(25444,-11541);
+    screen.displayCoordinate(23451,-14043);
+    // screen.displayRobotLocation(&robot);
 
     if(CAMERA_ON) {
         //  OpenCV
@@ -194,6 +209,8 @@ int main(int argc, char *argv[]) {
             imshow("webcam", frame);
         }
     }
+
+
     Aria::exit(0);
     return 0;
 }
