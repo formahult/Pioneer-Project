@@ -6,7 +6,7 @@
 
 /* defines */
 
-#define CAMERA_ON 0
+#define CAMERA_ON 1
 
 #define DRIVE_SPEED 500
 
@@ -14,7 +14,7 @@
 #define IMAGE_SCALE_FACTOR 10
 #define WINDOW_SIZE 300 // window size of image display
 #define SUBTRACT_HISTORY 50 // compared histroy of image in subtractor
-#define SUBTRACT_THRESHOLD 3 // threshold value for subtractor
+#define SUBTRACT_THRESHOLD 5 // threshold value for subtractor
 
 
 
@@ -29,6 +29,17 @@ eyesim robot;
 void printUsage();
 
 int SIMLaserScan(double *scan);
+
+void printPose(){
+    static int i=0;
+    if(i==0){
+        ArPose thisPose(0.0,0.0,0.0);
+        robot.lock();
+        robot.moveTo(thisPose);
+        robot.unlock();
+    }
+    cout<<" waypoint:"<<i++<<" x:"<<robot.getX()<<" y:"<<robot.getY()<<" th:"<<robot.getTh()<<endl;
+}
 
 class MotionDetector {
 public:
@@ -129,6 +140,17 @@ int main(int argc, char *argv[]) {
         Aria::exit(2);
         exit(2);
     }
+    ArKeyHandler *keyHandler = Aria::getKeyHandler();
+    if (keyHandler == NULL)
+    {
+        keyHandler = new ArKeyHandler;
+        Aria::setKeyHandler(keyHandler);
+        robot.attachKeyHandler(keyHandler);
+    }
+    cout<<"Press P to print Pose"<<endl;
+    ArGlobalFunctor printPoseCB(&printPose);
+    keyHandler->addKeyHandler('p', &printPoseCB);
+    keyHandler->addKeyHandler('P', &printPoseCB);
     robot.runAsync(true);
     if (!laserConnector.connectLasers()) {
         Aria::exit(3);
@@ -143,14 +165,16 @@ int main(int argc, char *argv[]) {
     cout << "All connections are done." << endl;
     cout << "Motors are enable." << endl;
 
-    while(1){
-        robot.LeftFollow(100,DRIVE_SPEED);
-    }
+
+
+//    while(1){
+//        robot.LeftFollow(100,DRIVE_SPEED);
+//    }
 
     if(CAMERA_ON) {
         //  OpenCV
         VideoCapture cap;
-        if (!cap.open(1)) {
+        if (!cap.open(0)) {
             cout << "Unable to open webcam\n";
             exit(EXIT_FAILURE);
         }
@@ -162,7 +186,6 @@ int main(int argc, char *argv[]) {
         Size frameSize(40, 30);
         namedWindow("webcam", WINDOW_NORMAL);
         resizeWindow("webcam", frame.cols, frame.rows);
-
         while (waitKey(10) != 27) {
             cap >> frame;
             if (frame.empty()) break; // end of video stream

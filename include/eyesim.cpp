@@ -7,13 +7,13 @@
 int eyesim::VWSetSpeed(int linSpeed, int angSpeed) {
     this->lock();
     if(this->getTransVelMax()<linSpeed){
-        cout<<"Reach Max TransVel!\n" << endl;
+//        cout<<"Reach Max TransVel!\n" << endl;
         this->unlock();
         return (1);
     }
     if(this->getRotVelMax()<angSpeed){
         this->unlock();
-        cout<<"Reach Max RotVel!\n"<< endl;
+//        cout<<"Reach Max RotVel!\n"<< endl;
         return(1);
     }
     this->setVel(linSpeed);
@@ -127,13 +127,13 @@ void eyesim::LeftFollow(double dist, double speed) {
         if(scan[i]<frontDist){
             this->lock();
             this->comInt(ArCommands::VEL, 0);
-            cout<<"avoid front obstacle"<<endl;
+//            cout<<"avoid front obstacle"<<endl;
             this->comInt(ArCommands::RVEL, -25);
             this->unlock();
             return;
         }
     }
-    cout<<"front clear"<<endl;
+//    cout<<"front clear"<<endl;
     this->lock();
     this->comInt(ArCommands::VEL, (short)speed);
     this->unlock();
@@ -246,7 +246,7 @@ void eyesim::SIMLaserScan(double *scan) {
 
 //    laser->lockDevice();
     if(laser->isConnected()){
-        cout<<"laser connected"<<endl;
+//        cout<<"laser connected"<<endl;
     }
     for (i = -90; i <= 90; i++) {
         dist = laser->currentReadingPolar(i - 0.5, i + 0.49, &angle);
