@@ -7,6 +7,10 @@
 #endif
 
 #include <iostream>
+#include <string>
+
+using namespace cv;
+using namespace std;
 
 class screen{
   private:
@@ -14,4 +18,5 @@ class screen{
   public:
     int displayImage(string);
     int displayCoordinate(int x, int y);
-}
+    screen();
+};
