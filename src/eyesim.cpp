@@ -265,3 +265,7 @@ void eyesim::DriveLeftFreeSpace(double speed) {
     double scan[181];
 
 }
+
+ArLaser* eyesim::GetLaser() {
+    return (*(this->getLaserMap()->begin())).second;
+}

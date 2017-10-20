@@ -29,7 +29,7 @@ public:
     int VWSetSpeed(int, int);
     int GetMaxSpeed(int *,int *);
     int SetMaxSpeed(int,int);
-
+    ArLaser* GetLaser();
     int VWGetSpeed(int *, int *);
 
     int VWSetPosition(int, int, int);
@@ -54,5 +54,4 @@ public:
 
     void DriveLeftFreeSpace(double);
 };
-
 #endif //ROBOT_TOUR_EYESIM_H
