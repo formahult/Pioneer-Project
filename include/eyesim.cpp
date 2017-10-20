@@ -5,36 +5,43 @@
 #include "eyesim.h"
 //
 int eyesim::VWSetSpeed(int linSpeed, int angSpeed) {
-    robot.lock();
-    if(robot.getTransVelMax()<linSpeed){
+    this->lock();
+    if(this->getTransVelMax()<linSpeed){
         cout<<"Reach Max TransVel!\n" << endl;
+        this->unlock();
         return (1);
     }
-    if(robot.getRotVelMax()<angSpeed){
+    if(this->getRotVelMax()<angSpeed){
+        this->unlock();
         cout<<"Reach Max RotVel!\n"<< endl;
         return(1);
     }
-    robot.setVel(linSpeed);
-    robot.setRotVel(angSpeed);
+    this->setVel(linSpeed);
+    this->setRotVel(angSpeed);
+    this->unlock();
     return (0);
 }
 //
 int eyesim::VWGetSpeed(int *linSpeed, int *angSpeed) {
-    *angSpeed = (int) robot.getRotVel();
-    *linSpeed = (int) robot.getVel();
+    this->lock();
+    *angSpeed = (int) this->getRotVel();
+    *linSpeed = (int) this->getVel();
+    this->unlock();
     return (0);
 }
 //
 int eyesim::VWSetPosition(int x, int y, int phi) {
     ArPose thisPose(x,y,phi);
-    robot.lock();
-    robot.moveTo(thisPose);
-    robot.unlock();
+    this->lock();
+    this->moveTo(thisPose);
+    this->unlock();
     return (0);
 }
 //
 int eyesim::VWGetPosition(int *x, int *y, int *phi) {
-    ArPose thisPose = robot.getPose();
+    this->lock();
+    ArPose thisPose = this->getPose();
+    this->unlock();
     *x = (int)thisPose.getX();
     *y = (int)thisPose.getY();
     *phi = (int)thisPose.getTh();
@@ -42,118 +49,51 @@ int eyesim::VWGetPosition(int *x, int *y, int *phi) {
 }
 //
 int eyesim::VWStraight(int dist, int linSpeed) {
-    if(robot.isDirectMotion()) robot.clearDirectMotion();
-    robot.setVel(linSpeed);
-    robot.move(dist);
+    this->lock();
+    this->setVel(linSpeed);
+    this->move(dist);
+    this->unlock();
     return (0);
 }
 
 int eyesim::VWTurn(int angle, int ang_speed) {
+    this->lock();
+    this->setRotVel(ang_speed);
+    this->setHeading(angle);
+    this->unlock();
     return (0);
 }
 
 int eyesim::VWCurve(int dist, int angle, int lin_speed) {
+    double time = dist / lin_speed;
+    double rotVel = angle / time;
+    this->lock();
+    this->setVel(lin_speed);
+    this->setRotVel(rotVel);
+//    this->move(dist);
+//    this->setHeading(angle);
+    this->unlock();
     return (0);
 }
 
 int eyesim::VWDrive(int dx, int dy, int lin_speed) {
     return (0);
 }
-
-int eyesim::VWRemain(void) {
-    return (0);
-}
 //
 int eyesim::VWDone(void) {
-
-    return robot.isMoveDone(0);
+    return this->isMoveDone()&&this->isHeadingDone();
 }
 
 int eyesim::VWWait(void) {
-
+    while(!this->isMoveDone()||!this->isHeadingDone());
     return (0);
 }
 
-int eyesim::VWStalled(void) {
-    return (0);
-}
-//
-int eyesim::SIMLaserScan(int *scan) {
-    const list<ArSensorReading *> *readingsList;
-    list<ArSensorReading *>::const_iterator itera;
-    int i = -1;
-    readingsList = laser->getRawReadings();
-    cout<<"1"<<endl;
-    for (itera = readingsList->begin(); itera != readingsList->end(); itera++) {
-        i++;
-        scan[i] = (*itera)->getRange();
-        cout<< scan[i]<<endl;
+bool eyesim::VWStalled(void) {
+    if(this->isLeftMotorStalled()||this->isRightMotorStalled()){
+        return (true);
     }
-
-    return 0;
-}
-
-eyesim::eyesim(ArArgumentParser aparser) : parser(aparser) {
-    Aria::init();
-    ArSimpleConnector connector(&parser);           //inst connector
-    parser.loadDefaultArguments();
-
-    ArRobotConnector robotConnector(&parser, &robot);
-    ArLaserConnector laserConnector(&parser, &robot, &robotConnector);
-
-    if (!robotConnector.connectRobot()) {
-        ArLog::log(ArLog::Terse, "lasersExample: Could not connect to the robot.");
-        if (parser.checkHelpAndWarnUnparsed()) {
-            // -help not given
-            Aria::logOptions();
-            Aria::exit(1);
-        }
-    }
-    if (!Aria::parseArgs()) {
-        Aria::logOptions();
-        Aria::exit(2);
-        return;
-    }
-
-    ArLog::log(ArLog::Normal, "lasersExample: Connected to robot.");
-    // Start the robot processing cycle running in the background.
-    // True parameter means that if the connection is lost, then the
-    // run loop ends.
-    robot.runAsync(true);
-    // Connect to laser(s) as defined in parameter files.
-    // (Some flags are available as arguments to connectLasers() to control error behavior and to control which lasers are put in the list of lasers stored by ArRobot. See docs for details.)
-    if (!laserConnector.connectLasers()) {
-        ArLog::log(ArLog::Terse, "Could not connect to configured lasers. Exiting.");
-        Aria::exit(3);
-        return;
-    }
-    // Allow some time to read laser data
-    ArUtil::sleep(500);
-    ArLog::log(ArLog::Normal, "Connected to all lasers.");
-
-    int numLasers = 0;
-    // Get a pointer to ArRobot's list of connected lasers. We will lock the robot while using it to prevent changes by tasks in the robot's background task thread or any other threads. Each laser has an index. You can also store the laser's index or name (laser->getName()) and use that to get a reference (pointer) to the laser object using ArRobot::findLaser().
-    robot.lock();
-    map<int, ArLaser *> *lasers = robot.getLaserMap();
-    map<int, ArLaser *>::const_iterator i = lasers->begin();
-    int laserIndex = (*i).first;
-    laser = (*i).second;
-    laser->lockDevice();
-    // The current readings are a set of obstacle readings (with X,Y positions as well as other attributes) that are the most recent set from teh laser.
-    list<ArPoseWithTime *> *currentReadings = laser->getCurrentBuffer(); // see ArRangeDevice interface doc
-    // There is a utility to find the closest reading wthin a range of degrees around the laser, here we use this laser's full field of view (start to end)
-    // If there are no valid closest readings within the given range, dist will be greater than laser->getMaxRange().
-    double angle = 0;
-    double dist = laser->currentReadingPolar(laser->getStartDegrees(), laser->getEndDegrees(), &angle);
-    ArLog::log(ArLog::Normal,
-               "Laser #%d (%s): %s. Have %d 'current' readings. Closest reading is at %3.0f degrees and is %2.4f meters away.",
-               laserIndex, laser->getName(), (laser->isConnected() ? "connected" : "NOT CONNECTED"),
-               currentReadings->size(), angle, dist / 1000.0);
-    laser->unlockDevice();
-    // Unlock robot and sleep for 5 seconds before next loop.
-    robot.unlock();
-    ArUtil::sleep(5000);
-
+    return (false);
 }
 
 int eyesim::Terminate() {
@@ -162,15 +102,168 @@ int eyesim::Terminate() {
 }
 
 int eyesim::GetMaxSpeed(int *linMax, int *angMax) {
-    *linMax = (int) (robot.getTransVelMax());
-    *angMax = (int) (robot.getRotVelMax());
+    this->lock();
+    *linMax = (int) (this->getTransVelMax());
+    *angMax = (int) (this->getRotVelMax());
+    this->unlock();
     return 0;
 }
 
 int eyesim::SetMaxSpeed(int linMax, int angMax) {
-    robot.lock();
-    robot.setTransVelMax(linMax);
-    robot.setRotVelMax(angMax);
-    robot.unlock();
+    this->lock();
+    this->setTransVelMax(linMax);
+    this->setRotVelMax(angMax);
+    this->unlock();
     return 0;
+}
+
+void eyesim::LeftFollow(double dist, double speed) {
+    int i;
+    double scan[181];
+    dist+=350;
+    double frontDist = dist;
+    SIMLaserScan(scan);
+    for(i=45;i<=135;i++){
+        if(scan[i]<frontDist){
+            this->lock();
+            this->comInt(ArCommands::VEL, 0);
+            cout<<"avoid front obstacle"<<endl;
+            this->comInt(ArCommands::RVEL, -25);
+            this->unlock();
+            return;
+        }
+    }
+    cout<<"front clear"<<endl;
+    this->lock();
+    this->comInt(ArCommands::VEL, (short)speed);
+    this->unlock();
+    double err_45 = (scan[135]*COS_45 - dist)/10;
+    if(abs(err_45)<10){
+        this->lock();
+        this->comInt(ArCommands::RVEL, 0);
+        this->unlock();
+        return;
+    }
+    if(err_45 < speed/5/6) {
+        this->lock();
+        this->comInt(ArCommands::RVEL, -(short)err_45);
+        this->unlock();
+        return;
+    }
+    double err_60 = (scan[150]*COS_60 - dist)/10;
+    if(abs(err_60)<10){
+        this->lock();
+        this->comInt(ArCommands::RVEL, 0);
+        this->unlock();
+        return;
+    }
+    if(err_60<speed/5/6) {
+        this->lock();
+        this->comInt(ArCommands::RVEL, -(short)err_60);
+        this->unlock();
+        return;
+    }
+    double err_75 = (scan[165]*COS_75 - dist)/10;
+    if(abs(err_75)<10){
+        this->lock();
+        this->comInt(ArCommands::RVEL, 0);
+        this->unlock();
+        return;
+    }
+    if(err_75<speed/5/5) {
+        this->lock();
+        this->comInt(ArCommands::RVEL, -(short)err_75);
+        this->unlock();
+        return;
+    }
+    double err_90 = (scan[180] - dist)/10;
+    if(abs(err_90)<10){
+        this->lock();
+        this->comInt(ArCommands::RVEL, 0);
+        this->unlock();
+        return;
+    }
+    if(err_90>speed/5/6){
+        err_90 = speed/5/6;
+    }
+    this->lock();
+    this->comInt(ArCommands::RVEL, -(short)err_90);
+    this->unlock();
+}
+
+//void eyesim::LeftFollow(double dist, double speed) {
+//    double scan[181];
+//    dist += 350;
+//    SIMLaserScan(scan);
+//    double err;
+//    double angDist= dist;
+//    for(int i = 30; i<=90;i++){
+//        if(((scan[i] - angDist)/ERR_COE)<0){
+//            this->lock();
+//            this->setVel(0);
+//            this->setRotVel(-140);
+//            this->unlock();
+//            cout<<scan[i]<<endl;
+//            return;
+//        }
+//        if(((scan[180-i] - angDist)/ERR_COE)<0){
+//            this->lock();
+//            this->setVel(0);
+//            this->setRotVel(-10);
+//            this->unlock();
+//            return;
+//        }
+//    }
+//    double curveDist = dist * PI / 2;
+//    for(int j = 135; j<181;j++){
+//        if((err = (scan[j] - dist / cosArray[j])/ERR_COE) < 0){
+//            cout<<err<<endl;
+//            VWCurve((int)curveDist,(int)err,(int)speed);
+//            return;
+//        }
+//    }
+//    if(err>180){
+//        err = 180;
+//    }
+//    cout<<scan[180]<<" "<<err<<endl;
+//    VWCurve((int)curveDist,(int)err,(int)speed);
+//
+//
+//}
+
+void eyesim::SIMLaserScan(double *scan) {
+    int i;
+    int index = 0;
+    double dist = 0;
+    double angle = 0;
+    const std::list<ArPoseWithTime *> *readingsList;
+    std::list<ArPoseWithTime *>::const_iterator RLit;
+    this->lock();
+    map<int, ArLaser *> *lasers = this->getLaserMap();
+    this->unlock();
+    map<int, ArLaser *>::const_iterator it = lasers->begin();
+    ArLaser* laser = (*it).second;
+
+//    laser->lockDevice();
+    if(laser->isConnected()){
+        cout<<"laser connected"<<endl;
+    }
+    for (i = -90; i <= 90; i++) {
+        dist = laser->currentReadingPolar(i - 0.5, i + 0.49, &angle);
+
+        scan[index] = dist;
+        index++;
+    }
+//    laser->unlockDevice();
+}
+
+eyesim::eyesim() {
+    for(int i = 0; i < 90; i++) {
+        cosArray[i]=cosArray[180-i] = cos(i*PI/180);
+    }
+}
+
+void eyesim::DriveLeftFreeSpace(double speed) {
+    double scan[181];
+
 }

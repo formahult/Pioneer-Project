@@ -8,6 +8,8 @@
 
 #define CAMERA_ON 0
 
+#define DRIVE_SPEED 500
+
 #define REQUIRED_ARGUMENTS 1
 #define IMAGE_SCALE_FACTOR 10
 #define WINDOW_SIZE 300 // window size of image display
@@ -15,15 +17,18 @@
 #define SUBTRACT_THRESHOLD 3 // threshold value for subtractor
 
 
+
 /* Namespace */
 using namespace std;
 using namespace cv;
 
 /* Global Variables */
-
+eyesim robot;
 /* Declare Function */
 
 void printUsage();
+
+int SIMLaserScan(double *scan);
 
 class MotionDetector {
 public:
@@ -74,32 +79,73 @@ private:
     vector<vector<Point>> contours;
 };
 
+void Init(int *argc, char **argv){
+    Aria::init();
+    ArArgumentParser parser(argc, argv);
+    ArSimpleConnector connector(&parser);
+    parser.loadDefaultArguments();
+    ArRobotConnector robotConnector(&parser, &robot);
+    ArLaserConnector laserConnector(&parser, &robot, &robotConnector);
+    if (!robotConnector.connectRobot()) {
+        if (parser.checkHelpAndWarnUnparsed()) {
+            Aria::logOptions();
+            Aria::exit(1);
+        }
+    }
+    if (!Aria::parseArgs()) {
+        Aria::logOptions();
+        Aria::exit(2);
+        exit(2);
+    }
+    robot.runAsync(true);
+    if (!laserConnector.connectLasers()) {
+        Aria::exit(3);
+        exit(3);
+    }
+    ArUtil::sleep(500);
+    robot.enableMotors();
+    cout << "All connections are done." << endl;
+    cout << "Motors are enable." << endl;
+}
+
 /* Main */
 
 int main(int argc, char *argv[]) {
-    //Usage
-//    if (argc != REQUIRED_ARGUMENTS) {
-//        printUsage();
-//        exit(EXIT_FAILURE);
-//    }
 
-    int scan[181];
-    ArArgumentParser parser(&argc,argv);
-    eyesim Pioneer(parser);
+    Aria::init();
+    ArArgumentParser parser(&argc, argv);
+    ArSimpleConnector connector(&parser);
+    parser.loadDefaultArguments();
+    ArRobotConnector robotConnector(&parser, &robot);
+    ArLaserConnector laserConnector(&parser, &robot, &robotConnector);
+    if (!robotConnector.connectRobot()) {
+        if (parser.checkHelpAndWarnUnparsed()) {
+            Aria::logOptions();
+            Aria::exit(1);
+        }
+    }
+    if (!Aria::parseArgs()) {
+        Aria::logOptions();
+        Aria::exit(2);
+        exit(2);
+    }
+    robot.runAsync(true);
+    if (!laserConnector.connectLasers()) {
+        Aria::exit(3);
+        exit(3);
+    }
+    ArUtil::sleep(5000);
+    robot.enableMotors();
+    robot.setTransAccel(robot.getAbsoluteMaxTransAccel());
+    robot.setTransDecel(robot.getAbsoluteMaxTransDecel());
+    robot.setRotAccel(robot.getAbsoluteMaxRotAccel());
+    robot.setRotDecel(robot.getAbsoluteMaxRotDecel());
+    cout << "All connections are done." << endl;
+    cout << "Motors are enable." << endl;
 
-
-
-    Pioneer.SIMLaserScan(scan);
-
-//    int lineSpeed,angSpeed;
-//    Pioneer.SetMaxSpeed(500,100);
-//    Pioneer.GetMaxSpeed(&lineSpeed,&angSpeed);
-//    cout<<" linM: "<< lineSpeed<<" angM: "<<angSpeed<<endl;
-//    Pioneer.VWStraight(1000,100);
-//    while(!Pioneer.VWDone()){
-//        Pioneer.VWGetSpeed(&lineSpeed,&angSpeed);
-//        cout<<" linS: "<<lineSpeed<<" angS: "<<angSpeed<<endl;
-//    }
+    while(1){
+        robot.LeftFollow(100,DRIVE_SPEED);
+    }
 
     if(CAMERA_ON) {
         //  OpenCV
@@ -126,7 +172,6 @@ int main(int argc, char *argv[]) {
         }
     }
     Aria::exit(0);
-//    Pioneer.Terminate();
     return 0;
 }
 
