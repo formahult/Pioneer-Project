@@ -11,6 +11,11 @@
 #include <string>
 
 #define RAD_TO_DEGREE (PI/180)
+#define DEGREE_TO_RAD (180/PI)
+#define COLOR_RED 2
+#define COLOR_GREEN 1
+#define COLOR_BLUE 0
+#define TIME_STEP 0.05
 
 using namespace cv;
 using namespace std;
@@ -39,6 +44,12 @@ private:
     double MyLaserOffset = 125;
     Point MyRobotPosition;
     Point MyLaserPosition;
+    Vec3b colorBlack;
+    Vec3b colorOrange;
+    Vec3b colorRed;
+    Vec3b colorBlue;
+    int MyFrontLength;
+    int MyHalfWidth;
 public:
     explicit Screen2(eyesim*);
     void DisplayImage();

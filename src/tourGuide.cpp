@@ -124,16 +124,15 @@ int main(int argc, char *argv[]) {
         Aria::exit(3);
         exit(3);
     }
-//    ArUtil::sleep(5000);
+    ArUtil::sleep(500);
     robot.enableMotors();
-    robot.comInt(ArCommands::ESTALL,0);
     cout << "All connections are done." << endl;
     cout << "Motors are enable." << endl;
 
     Screen2 screen2(&robot);
 
     while(waitKey(10)!=27){
-        robot.LeftFollow(200,DRIVE_SPEED);
+        robot.LeftFollow(400,DRIVE_SPEED);
         screen2.UpdateSurrounding(&robot);
         screen2.DisplayImage();
     }
