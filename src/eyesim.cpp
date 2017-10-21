@@ -63,6 +63,7 @@ int eyesim::VWStraight(int dist, int linSpeed) {
 
 int eyesim::VWTurn(int angle, int ang_speed) {
     this->lock();
+    this->stop();
     this->setRotVel(ang_speed);
     this->setHeading(angle);
     this->unlock();
@@ -311,7 +312,7 @@ void eyesim::LeftFollow(double dist, double speed) {
             if(errLeft>1000){
                 errLeft = 1000;
             }
-            errLeft/=100;
+            errLeft/=50;
             this->lock();
             this->comInt(ArCommands::VEL,(short)speed);
             cout<<"avoid left obstacle"<<endl;
@@ -323,7 +324,7 @@ void eyesim::LeftFollow(double dist, double speed) {
             if(errRight<-1000){
                 errLeft =-1000;
             }
-            errLeft/=100;
+            errLeft/=50;
             this->lock();
             this->comInt(ArCommands::VEL,(short)speed);
             cout<<"avoid left obstacle"<<endl;
@@ -332,12 +333,15 @@ void eyesim::LeftFollow(double dist, double speed) {
             return;
         }
     }
-    double err = (scan[180] - scan[0])/100;
-    if(err>10){
-        err = 10;
+    double err = (scan[180] - scan[0])/50;
+    if(err>20){
+        err = 20;
     }
-    if(err<-10) {
-        err = -10;
+    if(err<-20) {
+        err = -20;
+    }
+    if(err<5){
+        err = 0;
     }
     this->lock();
     this->comInt(ArCommands::VEL,(short)speed);
@@ -355,18 +359,29 @@ void eyesim::SIMLaserScan(double *scan) {
     this->unlock();
     map<int, ArLaser *>::const_iterator it = lasers->begin();
     ArLaser *laser = (*it).second;
-
-//    laser->lockDevice();
-    if (laser->isConnected()) {
-//        cout<<"laser connected"<<endl;
-    }
+    laser->lockDevice();
     for (i = -90; i <= 90; i++) {
-        dist = laser->currentReadingPolar(i - 0.5, i + 0.49, &angle);
-
+        dist = laser->currentReadingPolar(i-0.5, i, &angle);
         scan[index] = dist;
         index++;
     }
-//    laser->unlockDevice();
+    for(index = 0;index<181;index++){
+        if(index>0&&index<180){
+            if(scan[index]-scan[index-1]>1100&&scan[index]-scan[index+1]>1100){
+                scan[index] = (scan[index-1]+scan[index+1])/2;
+            }
+            if(scan[index]==0){
+                scan[index] = (scan[index-1]+scan[index+1])/2;
+            }
+        }
+    }
+    if(scan[0]==0||scan[0]-scan[1]>1100){
+        scan[0] = scan[1];
+    }
+    if(scan[180]==0||scan[0]-scan[1]>1100){
+        scan[180] = scan[179];
+    }
+    laser->unlockDevice();
 }
 
 eyesim::eyesim() {
@@ -382,4 +397,17 @@ void eyesim::DriveLeftFreeSpace(double speed) {
 
 ArLaser *eyesim::GetLaser() {
     return (*(this->getLaserMap()->begin())).second;
+}
+
+double eyesim::GetClosestDist(double* angle) {
+    double dist;
+    this->lock();
+    map<int, ArLaser *> *lasers = this->getLaserMap();
+    this->unlock();
+    map<int, ArLaser *>::const_iterator it = lasers->begin();
+    ArLaser *laser = (*it).second;
+    laser->lockDevice();
+    dist = laser->currentReadingPolar(-90, 90, angle);
+    laser->unlockDevice();
+    return dist;
 }

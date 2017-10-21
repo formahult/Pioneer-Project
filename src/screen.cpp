@@ -55,25 +55,32 @@ Screen2::Screen2(eyesim *robot) {
     colorBlue.val[COLOR_BLUE] = 255;
     colorBlue.val[COLOR_GREEN] = 0;
     colorBlue.val[COLOR_RED] = 0;
-    int maxLaserRange = robot->GetLaser()->getMaxRange();
-    int scaleFactor = 35;
+    colorGreen.val[COLOR_BLUE] = 0;
+    colorGreen.val[COLOR_GREEN] = 255;
+    colorGreen.val[COLOR_RED] = 0;
+    robot->lock();
+    MyLaserMaxRange = robot->GetLaser()->getMaxRange();
+    int scaleFactor = 15;
     MyScaleX = MyScaleY = scaleFactor;
     MyFrontLength = (int) (robot->getRobotLengthFront() / MyScaleY);
     MyHalfWidth = (int) (robot->getRobotWidth() / MyScaleX / 2);
-    MyRobotPosition = Point(maxLaserRange / MyScaleX, maxLaserRange / MyScaleY);
+    robot->unlock();
+    MyRobotPosition = Point((int) (MyLaserMaxRange / MyScaleX),
+                            (int) ceil((MyLaserMaxRange + MyLaserOffset) / MyScaleY));
     MyLaserPosition = MyRobotPosition;
     MyLaserPosition.y -= MyLaserOffset / MyScaleY;
-    MyBackground = Mat(maxLaserRange / MyScaleY, 2 * maxLaserRange / MyScaleX, CV_8UC3, Scalar(255, 255, 255));
+    MyBackground = Mat((int) ((MyLaserMaxRange + MyLaserOffset) / MyScaleY),
+                       (int) (2 * MyLaserMaxRange / MyScaleX), CV_8UC3, Scalar(255, 255, 255));
     rectangle(MyBackground, Point(MyRobotPosition.x - MyHalfWidth, MyRobotPosition.y),
               Point(MyRobotPosition.x + MyHalfWidth, MyRobotPosition.y - MyFrontLength), Scalar(0, 200, 200), FILLED);
-    circle(MyBackground, MyRobotPosition, MyRobotPosition.x, Scalar(0, 255, 0), 1);
-    putText(MyBackground,"Max Laser Range",Point(2,10),FONT_HERSHEY_PLAIN,1,Scalar(0,0,0));
-    putText(MyBackground,"FreeSpace",Point(2,20),FONT_HERSHEY_PLAIN,1,Scalar(0,0,0));
-    putText(MyBackground,"Max Laser Range",Point(2,30),FONT_HERSHEY_PLAIN,1,Scalar(0,0,0));
+    circle(MyBackground, MyLaserPosition, MyLaserPosition.x, Scalar(0, 255, 0), 1);
+    putText(MyBackground, "Max Laser Range", Point(2, 10), FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 0));
+    putText(MyBackground, "FreeSpace", Point(2, 20), FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 0));
+    putText(MyBackground, "Max Laser Range", Point(2, 30), FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 0));
 
     MyBackground.copyTo(MyImage);
-    MySize.width = 2 * maxLaserRange / MyScaleX;
-    MySize.height = maxLaserRange / MyScaleY;
+    MySize.width = (int) (2 * MyLaserMaxRange / MyScaleX);
+    MySize.height = (int) (MyLaserMaxRange / MyScaleY);
     namedWindow(MyWindowName, WINDOW_GUI_NORMAL | WINDOW_AUTOSIZE);
 }
 
@@ -97,33 +104,93 @@ void Screen2::UpdateSurrounding(eyesim *robot) {
     double rad;
     for (int i = 0; i < 181; i++) {
         rad = -i * radToDegree;
-        if (scan[i] > robot->GetLaser()->getMaxRange()-100) {
-            scan[i] = robot->GetLaser()->getMaxRange()-100;
+
+        if (scan[i] > robot->GetLaser()->getMaxRange()) {
+            scan[i] = robot->GetLaser()->getMaxRange();
         }
-        obstacle[i].x = (int) (scan[i] * cos(rad) / MyScaleX + MyLaserPosition.x);
-        obstacle[i].y = (int) (scan[i] * sin(rad) / MyScaleY + MyLaserPosition.y);
-        if (scan[i] > 2000) {
-            line(MyImage, MyLaserPosition, obstacle[i], Scalar(0, 255, 255));
+        obstacle[i].x = ((int) (scan[i] * cos(rad) / MyScaleX) + MyLaserPosition.x);
+        obstacle[i].y = ((int) (scan[i] * sin(rad) / MyScaleY) + MyLaserPosition.y);
+        if (scan[i] < 500) {
+            line(MyImage, MyLaserPosition, obstacle[i], Scalar(0, 0, 255));
         }
-        if(scan[i] < 450) {
-            line(MyImage, MyLaserPosition, obstacle[i], Scalar(0,0,255));
+//        MyImage.at<Vec3b>(obstacle[i]) = colorBlack;
+
+        if (i > 0) {
+            if (i < 45 || i > 135) {
+                if (norm(obstacle[i - 1] - obstacle[i]) > 100 / MyScaleY) {
+                    line(MyImage, obstacle[i - 1], obstacle[i], Scalar(0, 0, 255));
+                    continue;
+                }
+            }
+            line(MyImage, obstacle[i - 1], obstacle[i], Scalar(0, 0, 0));
         }
-        MyImage.at<Vec3b>(obstacle[i]) = colorBlack;
     }
-    double angleStep = robot->getRotVel() * TIME_STEP*DEGREE_TO_RAD;
-    double lengthStep = robot->getVel()* TIME_STEP;
+    double angleStep = robot->getRotVel() * TIME_STEP * DEGREE_TO_RAD;
+    double lengthStep = robot->getVel() * TIME_STEP;
     Point estimatePath;
-    double angle,length;
-    for(int i = 1; i< 100;i++){
-        angle = angleStep*i;
+    double angle, length;
+    for (int i = 1; i < 100; i++) {
+        angle = angleStep * i;
         length = lengthStep * i;
-        estimatePath = Point(static_cast<int>(sin(-angle) * length/MyScaleX + MyRobotPosition.x),
-                             static_cast<int>(-cos(angle) * length/MyScaleY + MyRobotPosition.y));
-        if(estimatePath.y>MyRobotPosition.y) break;
+        estimatePath = Point(static_cast<int>(sin(-angle) * length / MyScaleX + MyRobotPosition.x),
+                             static_cast<int>(-cos(angle) * length / MyScaleY + MyRobotPosition.y));
+        if (estimatePath.y > MyRobotPosition.y) break;
         MyImage.at<Vec3b>(estimatePath) = colorBlue;
     }
 //    rectangle(MyImage, Point(MyRobotPosition.x - MyHalfWidth, MyRobotPosition.y),
 //              Point(MyRobotPosition.x + MyHalfWidth, MyRobotPosition.y - MyFrontLength), Scalar(0, 200, 200), FILLED);
 
 
+}
+
+int Screen2::SearchFreeSpace(double *scan, double distThres, int countThres) {
+    int count = 0;
+    int mid = -1;
+    int leftMid = -1;
+    double radToDegree = RAD_TO_DEGREE;
+    double rad;
+    int i;
+    Point midPoint, freeSpacePoint;
+    for (i = 0; i < 181; i++) {
+        if (scan[i] > distThres) {
+            if (count == 0) mid = -1;
+            count++;
+            rad = -i * radToDegree;
+            freeSpacePoint.x = ((int) (scan[i] * cos(rad) / MyScaleX) + MyLaserPosition.x);
+            freeSpacePoint.y = ((int) (scan[i] * sin(rad) / MyScaleY) + MyLaserPosition.y);
+            if (scan[i] > distThres) {
+                line(MyImage, MyLaserPosition, freeSpacePoint, Scalar(0, 255, 255));
+            }
+        }
+        if (scan[i] <= distThres) {
+            if (count > countThres) {
+                mid = i - count / 2;
+                rad = -mid * radToDegree;
+                if (scan[i] > MyLaserMaxRange) {
+                    scan[i] = MyLaserMaxRange;
+                }
+                midPoint = Point(((int) (scan[i] * cos(rad) / MyScaleX) + MyLaserPosition.x),
+                                 ((int) (scan[i] * sin(rad) / MyScaleY) + MyLaserPosition.y));
+                line(MyImage, MyLaserPosition, midPoint, Scalar(0, 255, 0));
+                if (mid > leftMid) {
+                    leftMid = mid;
+                }
+            }
+            count = 0;
+        }
+    }
+
+    if (count > countThres && leftMid == -1) {
+        leftMid = i - count / 2;
+        if (scan[i] > MyLaserMaxRange) {
+            scan[i] = MyLaserMaxRange;
+        }
+    }
+    if (leftMid >= 0) {
+        rad = -leftMid * radToDegree;
+        midPoint = Point(((int) (scan[leftMid] * cos(rad) / MyScaleX) + MyLaserPosition.x),
+                         ((int) (scan[leftMid] * sin(rad) / MyScaleY) + MyLaserPosition.y));
+        line(MyImage, MyLaserPosition, midPoint, Scalar(0, 140, 250));
+    }
+    return leftMid;
 }

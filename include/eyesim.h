@@ -21,8 +21,8 @@ using namespace std;
 class eyesim: public ArRobot {
 private:
     /* data */
-    double cosArray[181];
 public:
+    double cosArray[181];
     eyesim();
     int Terminate();
     void SIMLaserScan(double*);
@@ -31,6 +31,7 @@ public:
     int SetMaxSpeed(int,int);
     ArLaser* GetLaser();
     int VWGetSpeed(int *, int *);
+    double GetClosestDist(double *angle);
 
     int VWSetPosition(int, int, int);
 

@@ -44,10 +44,12 @@ private:
     double MyLaserOffset = 125;
     Point MyRobotPosition;
     Point MyLaserPosition;
+    double MyLaserMaxRange;
     Vec3b colorBlack;
     Vec3b colorOrange;
     Vec3b colorRed;
     Vec3b colorBlue;
+    Vec3b colorGreen;
     int MyFrontLength;
     int MyHalfWidth;
 public:
@@ -55,6 +57,7 @@ public:
     void DisplayImage();
     void DisplayBackground();
     void UpdateSurrounding(eyesim*);
+    int SearchFreeSpace(double* scan, double distThres, int countThres);
 };
 
 

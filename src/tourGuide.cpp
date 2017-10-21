@@ -5,7 +5,7 @@
 
 #define CAMERA_ON 0
 
-#define DRIVE_SPEED 500
+#define DRIVE_SPEED 300
 
 #define REQUIRED_ARGUMENTS 1
 #define IMAGE_SCALE_FACTOR 10
@@ -109,7 +109,7 @@ int main(int argc, char *argv[]) {
         exit(2);
     }
     ArKeyHandler *keyHandler = Aria::getKeyHandler();
-    if (keyHandler == NULL)
+    if (keyHandler == nullptr)
     {
         keyHandler = new ArKeyHandler;
         Aria::setKeyHandler(keyHandler);
@@ -126,15 +126,100 @@ int main(int argc, char *argv[]) {
     }
     ArUtil::sleep(500);
     robot.enableMotors();
-    cout << "All connections are done." << endl;
-    cout << "Motors are enable." << endl;
-
+    robot.GetLaser()->setMaxRange(5000);
     Screen2 screen2(&robot);
-
+    double scan[181];
+    double closestDist;
+    double closestAngle;
+    int mid,i;
+    bool leftObstacle;
+    bool rightObstacle;
     while(waitKey(10)!=27){
-        robot.LeftFollow(400,DRIVE_SPEED);
+        leftObstacle = false;
+        rightObstacle = false;
+        closestDist = robot.GetClosestDist(&closestAngle);
         screen2.UpdateSurrounding(&robot);
+        robot.SIMLaserScan(scan);
+        mid = screen2.SearchFreeSpace(scan,closestDist+1000,10);
         screen2.DisplayImage();
+        for(i=0;i<45;i++){
+            if(scan[i]/robot.cosArray[i]<300){
+                rightObstacle = true;
+                robot.lock();
+                robot.comInt(ArCommands::VEL,0);
+                robot.unlock();
+                break;
+            }
+            if(scan[180-i]/robot.cosArray[180-i]<300){
+                leftObstacle = true;
+                robot.lock();
+                robot.comInt(ArCommands::VEL,0);
+                robot.unlock();
+                break;
+            }
+        }
+        for(i=45;i<90;i++){
+            if(scan[i]<400){
+                rightObstacle = true;
+                robot.lock();
+                robot.comInt(ArCommands::VEL,0);
+                robot.unlock();
+                break;
+            }
+            if(scan[180-i]<400){
+                leftObstacle = true;
+                robot.lock();
+                robot.comInt(ArCommands::VEL,0);
+                robot.unlock();
+                break;
+            }
+        }
+
+        if(rightObstacle){
+            mid = 100;
+        }
+        if(leftObstacle){
+            mid = 80;
+        }
+//        if(obstacle){
+//            if(mid>90) {
+//                robot.comInt(ArCommands::RVEL, 50);
+//                continue;
+//            }
+//            robot.comInt(ArCommands::RVEL, -50);
+//            continue;
+//        }
+        if(mid<45){
+            robot.lock();
+            robot.comInt(ArCommands::RVEL,-50);
+            robot.unlock();
+            continue;
+        }
+        if(mid>135){
+            robot.lock();
+            robot.comInt(ArCommands::RVEL,50);
+            robot.unlock();
+            continue;
+        }
+        if(mid<0){
+            robot.lock();
+            robot.comInt(ArCommands::RVEL,-50);
+            robot.unlock();
+            continue;
+        }
+        if(mid<45){
+            robot.lock();
+            robot.comInt(ArCommands::RVEL,-50);
+            robot.unlock();
+            continue;
+        }
+        if(mid>135){
+            robot.lock();
+            robot.comInt(ArCommands::RVEL,50);
+            robot.unlock();
+            continue;
+        }
+        robot.VWCurve((int)(closestDist-100),mid-90,DRIVE_SPEED);
     }
 
 //        Screen screen;
